@@ -1,0 +1,52 @@
+name: hr-policy-rag
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: hr-rag-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rag}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rag}
+      POSTGRES_DB: ${POSTGRES_DB:-rag}
+      # Faster startup for a development machine; the default fsync costs are
+      # only worth paying on a real deployment.
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rag} -d ${POSTGRES_DB:-rag}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    shm_size: 128mb
+
+  # Uncomment to run the API in Docker instead of on the host.
+  # It waits for the database, then applies migrations before serving.
+  #
+  # api:
+  #   build:
+  #     context: ./backend
+  #   container_name: hr-rag-api
+  #   restart: unless-stopped
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #   environment:
+  #     DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-rag}:${POSTGRES_PASSWORD:-rag}@db:5432/${POSTGRES_DB:-rag}
+  #     JWT_SECRET: ${JWT_SECRET:-change-me-before-deploying-anything-here}
+  #     ENVIRONMENT: ${ENVIRONMENT:-development}
+  #     SEED_DEMO_USERS: ${SEED_DEMO_USERS:-false}
+  #     CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+  #   ports:
+  #     - "8000:8000"
+  #   command: >
+  #     sh -c "alembic upgrade head &&
+  #             uvicorn main:app --host 0.0.0.0 --port 8000"
+
+volumes:
+  pgdata:
