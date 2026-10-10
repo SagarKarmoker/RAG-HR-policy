@@ -197,14 +197,14 @@ function answerFor(question) {
     }
   }
 
-  /* Later phrases usually carry the operative intent ("... can I carry over?"),
-     so a match near the end of the question outweighs one at the start. */
+  /* A longer keyword is a stronger signal than a generic one, and a phrase near
+     the end of the question usually carries the intent ("... can I carry over?"). */
   const curated = CURATED.map((entry) => {
     let score = 0
     for (const keyword of entry.keywords) {
       const at = q.indexOf(keyword)
       if (at === -1) continue
-      score += 1 + at / q.length
+      score += 1 + keyword.length / 40 + (at / q.length) * 0.25
     }
     return { entry, score }
   })
@@ -249,22 +249,24 @@ function answerFor(question) {
     })
     .filter((r) => r.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 2)
+    .slice(0, 1)
 
-  if (scored.length && scored[0].score >= 2) {
+  if (scored.length && scored[0].score >= 3) {
     const top = scored[0]
     const content = `No policy answers this directly, so here is the closest text we hold, quoted in full.\n\n${top.section.heading}\n${top.section.body}\n\nIf this does not settle your question, send it to People Operations and ask them to either answer it or write it into a policy.`
     return {
       outcome: 'answered',
       content,
-      sources: scored.map(({ doc, section }) => ({
-        documentId: doc.id,
-        title: doc.title,
-        version: doc.version,
-        section: section.heading,
-        excerpt: section.body,
-        note: doc.note,
-      })),
+      sources: [
+        {
+          documentId: top.doc.id,
+          title: top.doc.title,
+          version: top.doc.version,
+          section: top.section.heading,
+          excerpt: top.section.body,
+          note: top.doc.note,
+        },
+      ],
     }
   }
 
@@ -277,15 +279,8 @@ function answerFor(question) {
   return {
     outcome: 'refused',
     content:
-      'The nearest text is quoted below, but nothing in it settles your question. If you need an answer, People Operations can either answer it or write it into a policy.',
-    sources: scored.map(({ doc, section }) => ({
-      documentId: doc.id,
-      title: doc.title,
-      version: doc.version,
-      section: section.heading,
-      excerpt: section.body,
-      note: doc.note,
-    })),
+      'Nothing in the active policies covers this, so there is nothing to quote. People Operations can answer it directly or write it into a policy — this search has been recorded so the gap gets noticed.',
+    sources: [],
     gapTerm,
   }
 }

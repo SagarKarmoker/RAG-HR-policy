@@ -4,7 +4,7 @@
     :description="doc ? `${doc.fileName} · ${fileSize(doc.sizeKb)} · updated ${formatDate(doc.updatedAt)} by ${doc.updatedBy}` : ''"
   >
     <template #actions>
-      <AppButton to="/hr/documents" variant="veil" icon="chevronRight">All documents</AppButton>
+      <AppButton to="/hr/documents" variant="veil" icon="chevronLeft">All documents</AppButton>
       <AppButton variant="ink" :disabled="!dirty" @click="save">Save changes</AppButton>
     </template>
 
